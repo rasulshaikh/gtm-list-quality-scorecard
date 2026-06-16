@@ -1,0 +1,115 @@
+{
+  "name": "GTM - Pre-Send List Quality Gate",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "gtm-list-gate",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-gate",
+      "name": "Webhook - Clay Export",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 300],
+      "webhookId": "gtm-list-gate"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body || $input.first().json;\nconst leads = body.leads || [];\n\nif (!leads.length) throw new Error('No leads in payload');\n\nconst total = leads.length;\nconst emails = leads.map(l => (l.email || '').toLowerCase()).filter(Boolean);\nconst dupes = emails.length - new Set(emails).size;\nconst dupePct = (dupes / total) * 100;\n\nconst catchAll = ['info','contact','hello','sales','admin','team'];\nconst catchAlls = emails.filter(e => catchAll.includes(e.split('@')[0])).length;\nconst catchPct = (catchAlls / total) * 100;\n\nconst badPatterns = /intern|assistant|coordinator|student|retired/i;\nconst badTitles = leads.filter(l => badPatterns.test(l.job_title || l.title || '')).length;\nconst badPct = (badTitles / total) * 100;\n\nconst verified = leads.filter(l => ['ok','verified','valid'].includes((l.email_status || l.verification_status || '').toLowerCase())).length;\nconst hasVerCol = leads.some(l => l.email_status || l.verification_status);\nconst verScore = hasVerCol ? Math.round((verified / total) * 100) : 0;\n\nconst fakeNames = leads.filter(l => !l.first_name || !l.last_name || l.first_name.toLowerCase() === 'admin').length;\nconst nameScore = Math.round(((total - fakeNames) / total) * 100);\n\nconst dupeScore = Math.max(0, Math.round(100 - dupePct * 20));\nconst catchScore = catchPct < 5 ? 100 : (catchPct < 15 ? 50 : 0);\nconst badScore = Math.max(0, Math.round(100 - badPct * 10));\n\nconst overall = Math.round((verScore * 2 + dupeScore + catchScore + badScore + nameScore) / 6);\nconst grade = overall >= 90 ? 'A' : overall >= 80 ? 'B' : overall >= 70 ? 'C' : overall >= 60 ? 'D' : 'F';\nconst pass = overall >= 80;\n\nconst issues = [];\nif (!hasVerCol) issues.push('No verification column');\nif (dupes > 0) issues.push(`${dupes} duplicate emails`);\nif (catchAlls > 0) issues.push(`${catchAlls} catch-all addresses`);\nif (badTitles > 0) issues.push(`${badTitles} bad titles`);\nif (fakeNames > 0) issues.push(`${fakeNames} fake/missing names`);\n\nreturn [{\n  json: {\n    total, grade, overall, pass,\n    dimensions: { verification: verScore, duplicates: dupeScore, catch_all: catchScore, bad_titles: badScore, names: nameScore },\n    issues,\n    leads: pass ? leads : []\n  }\n}];"
+      },
+      "id": "score-list",
+      "name": "Score List (8 Dimensions)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [220, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [{ "value1": "={{ $json.pass }}", "value2": true }]
+        }
+      },
+      "id": "grade-gate",
+      "name": "Grade B+ Required",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [440, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.N8N_OMNIBOUND_WEBHOOK_URL }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ leads: $json.leads, batch_id: $now.toISO(), list_grade: $json.grade }) }}",
+        "options": {}
+      },
+      "id": "forward-pass",
+      "name": "Forward to Clay Push Pipeline",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [660, 200]
+    },
+    {
+      "parameters": {
+        "channel": "={{ $env.SLACK_GTM_CHANNEL || '#gtm-alerts' }}",
+        "text": "=:x: *List blocked — grade {{ $json.grade }} ({{ $json.overall }}/100)*\nRows: {{ $json.total }}\nIssues: {{ $json.issues.join(', ') }}\nFix list before sending.",
+        "otherOptions": {}
+      },
+      "id": "slack-block",
+      "name": "Alert - List Blocked",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.2,
+      "position": [660, 420],
+      "credentials": {
+        "slackApi": { "id": "SLACK_CREDENTIALS_ID", "name": "Slack API" }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ status: $json.pass ? 'approved' : 'blocked', grade: $json.grade, score: $json.overall, issues: $json.issues }) }}"
+      },
+      "id": "respond-pass",
+      "name": "Respond Approved",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [880, 200]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ status: 'blocked', grade: $json.grade, score: $json.overall, issues: $json.issues }) }}"
+      },
+      "id": "respond-block",
+      "name": "Respond Blocked",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [880, 420]
+    }
+  ],
+  "connections": {
+    "Webhook - Clay Export": {
+      "main": [[{ "node": "Score List (8 Dimensions)", "type": "main", "index": 0 }]]
+    },
+    "Score List (8 Dimensions)": {
+      "main": [[{ "node": "Grade B+ Required", "type": "main", "index": 0 }]]
+    },
+    "Grade B+ Required": {
+      "main": [
+        [{ "node": "Forward to Clay Push Pipeline", "type": "main", "index": 0 }],
+        [{ "node": "Alert - List Blocked", "type": "main", "index": 0 }]
+      ]
+    },
+    "Forward to Clay Push Pipeline": {
+      "main": [[{ "node": "Respond Approved", "type": "main", "index": 0 }]]
+    },
+    "Alert - List Blocked": {
+      "main": [[{ "node": "Respond Blocked", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": { "executionOrder": "v1" },
+  "tags": [{ "name": "gtm" }, { "name": "list-quality" }]
+}

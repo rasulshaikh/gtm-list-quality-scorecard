@@ -69,6 +69,18 @@ Required columns (case-insensitive):
 | 60-69 | D | Serious cleanup required |
 | <60 | F | Don't send. Rebuild the list. |
 
+## PDF guide
+
+Download: [docs/play-guide.pdf](docs/play-guide.pdf) — 8 dimensions, grade mapping, pre-send checklist.
+
+## n8n workflow
+
+Import `n8n/pre-send-list-gate.json` into n8n.
+
+Webhook `POST /gtm-list-gate` receives Clay export `{ leads: [...] }`. Scores in-code. Grade B+ forwards to Omnibound push pipeline. Below B blocks send + Slack alert.
+
+**Env vars:** `N8N_OMNIBOUND_WEBHOOK_URL`, `SLACK_GTM_CHANNEL`
+
 ## Pair with
 
 - [gtm-deliverability-audit](https://github.com/rasulshaikh/gtm-deliverability-audit) — post-send health check
