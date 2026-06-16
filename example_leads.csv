@@ -1,0 +1,9 @@
+email,first_name,last_name,job_title,company_name,company_domain,company_industry,company_headcount,email_status
+sarah.chen@buildfast.io,Sarah,Chen,VP Sales,BuildFast,buildfast.io,B2B SaaS,120,valid
+james.okafor@scaleup.com,James,Okafor,Chief Revenue Officer,ScaleUp,scaleup.com,Software,85,valid
+info@acmecorp.com,Info,Desk,Marketing Manager,Acme Corp,acmecorp.com,Manufacturing,500,valid
+mike@buildfast.io,Mike,Johnson,SDR Manager,BuildFast,buildfast.io,B2B SaaS,120,valid
+lisa@fintechpay.io,Lisa,Wong,Director of Marketing,FinTech Pay,fintechpay.io,Fintech,200,valid
+tom@startup.dev,Tom,INTERN,Marketing Intern,Startup Dev,startup.dev,DevTools,15,valid
+sarah.chen@buildfast.io,Sarah,Chen,VP Sales,BuildFast,buildfast.io,B2B SaaS,120,valid
+admin@testco.com,Admin,User,Coordinator,TestCo,testco.com,Retail,50,invalid

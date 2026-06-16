@@ -1,0 +1,15 @@
+job_titles:
+  - VP Sales
+  - Chief Revenue Officer
+  - Head of Growth
+  - Director of Marketing
+  - RevOps
+
+industries_in:
+  - B2B SaaS
+  - Software
+  - Fintech
+  - DevTools
+
+headcount_min: 50
+headcount_max: 500
