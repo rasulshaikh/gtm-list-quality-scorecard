@@ -40,7 +40,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "={{ $env.N8N_OMNIBOUND_WEBHOOK_URL }}",
+        "url": "={{ $env.N8N_CLAY_PUSH_WEBHOOK_URL }}",
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ leads: $json.leads, batch_id: $now.toISO(), list_grade: $json.grade }) }}",

@@ -77,9 +77,9 @@ Download: [docs/play-guide.pdf](docs/play-guide.pdf) — 8 dimensions, grade map
 
 Import `n8n/pre-send-list-gate.json` into n8n.
 
-Webhook `POST /gtm-list-gate` receives Clay export `{ leads: [...] }`. Scores in-code. Grade B+ forwards to Omnibound push pipeline. Below B blocks send + Slack alert.
+Webhook `POST /gtm-list-gate` receives Clay export `{ leads: [...] }`. Scores in-code. Grade B+ forwards to production Clay push pipeline. Below B blocks send + Slack alert.
 
-**Env vars:** `N8N_OMNIBOUND_WEBHOOK_URL`, `SLACK_GTM_CHANNEL`
+**Env vars:** `N8N_CLAY_PUSH_WEBHOOK_URL`, `SLACK_GTM_CHANNEL`
 
 ## Pair with
 
